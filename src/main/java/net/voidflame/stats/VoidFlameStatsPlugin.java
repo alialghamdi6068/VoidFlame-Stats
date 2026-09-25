@@ -6,6 +6,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
@@ -58,6 +61,22 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         } catch (ReflectiveOperationException ex) {
             return CompletableFuture.failedFuture(ex);
         }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player player) || !command.getName().equalsIgnoreCase("stats")) return true;
+        StatsService.PlayerStats value = stats.getCached(player.getUniqueId());
+        player.sendMessage("§8§m--------------------");
+        player.sendMessage("§bVoidFlame §fStats");
+        player.sendMessage("§7Wins: §a" + value.wins());
+        player.sendMessage("§7Losses: §c" + value.losses());
+        player.sendMessage("§7Kills: §a" + value.kills());
+        player.sendMessage("§7Deaths: §c" + value.deaths());
+        player.sendMessage("§7Streak: §e" + value.streak());
+        player.sendMessage("§7ELO: §b" + Math.round(value.elo()));
+        player.sendMessage("§8§m--------------------");
+        return true;
     }
 
     @EventHandler
