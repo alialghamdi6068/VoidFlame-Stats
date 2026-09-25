@@ -1,29 +1,29 @@
 package net.voidflame.stats;
 
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
-import org.bukkit.event.Listener;
+import org.bukkit.plugin.ServicePriority;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Method;
-import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
+public final class VoidFlameStatsPlugin extends JavaPlugin {
     private Object storage;
     private Method put;
     private Method get;
+    private StatsService stats;
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
         if (!connectStorage()) {
             getLogger().severe("VoidFlame-Core storage service is unavailable.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        saveDefaultConfig();
-        getServer().getPluginManager().registerEvents(this, this);
-        getLogger().info("VoidFlame-Stats enabled. Persistent data is provided by VoidFlame-Core.");
+        stats = new StatsService(this);
+        getServer().getServicesManager().register(StatsService.class, stats, this, ServicePriority.Normal);
+        getLogger().info("VoidFlame-Stats enabled with persistent W/L/K/D/streak/ELO storage.");
     }
 
     private boolean connectStorage() {
@@ -36,7 +36,6 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
             get = type.getMethod("get", String.class, String.class);
             return true;
         } catch (ReflectiveOperationException ex) {
-            getLogger().severe("Unable to connect to VoidFlame-Core storage: " + ex.getMessage());
             return false;
         }
     }
@@ -55,5 +54,14 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         } catch (ReflectiveOperationException ex) {
             return CompletableFuture.failedFuture(ex);
         }
+    }
+
+    public StatsService stats() {
+        return stats;
+    }
+
+    @Override
+    public void onDisable() {
+        getServer().getServicesManager().unregister(StatsService.class, this);
     }
 }
