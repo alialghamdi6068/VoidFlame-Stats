@@ -3,11 +3,14 @@ package net.voidflame.stats;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 
-public final class VoidFlameStatsPlugin extends JavaPlugin {
+public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     private Object storage;
     private Method put;
     private Method get;
@@ -23,6 +26,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin {
         }
         stats = new StatsService(this);
         getServer().getServicesManager().register(StatsService.class, stats, this, ServicePriority.Normal);
+        getServer().getPluginManager().registerEvents(this, this);
         getLogger().info("VoidFlame-Stats enabled with persistent W/L/K/D/streak/ELO storage.");
     }
 
@@ -55,6 +59,9 @@ public final class VoidFlameStatsPlugin extends JavaPlugin {
             return CompletableFuture.failedFuture(ex);
         }
     }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) { stats.load(event.getPlayer().getUniqueId()); }
 
     public StatsService stats() {
         return stats;
