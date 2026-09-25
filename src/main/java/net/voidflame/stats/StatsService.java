@@ -19,6 +19,15 @@ public final class StatsService {
         return cache.getOrDefault(uuid, new PlayerStats(0, 0, 0, 0, 0, 1000));
     }
 
+    public void load(UUID uuid) {
+        plugin.get("player:" + uuid).thenAccept(value -> {
+            if (value == null || value.isBlank()) return;
+            String[] p = value.split(",");
+            if (p.length != 6) return;
+            try { cache.put(uuid, new PlayerStats(Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2]), Long.parseLong(p[3]), Long.parseLong(p[4]), Double.parseDouble(p[5]))); } catch (NumberFormatException ignored) {}
+        });
+    }
+
     public void set(UUID uuid, PlayerStats stats) {
         cache.put(uuid, stats);
         plugin.put("player:" + uuid, encode(stats));
