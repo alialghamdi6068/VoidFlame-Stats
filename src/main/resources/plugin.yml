@@ -7,3 +7,8 @@ website: https://github.com/alialghamdi6068/VoidFlame-Stats
 api-version: '26.2'
 load: POSTWORLD
 depend: [VoidFlame-Core]
+
+commands:
+  stats:
+    description: View your VoidFlame practice statistics.
+    usage: /stats
