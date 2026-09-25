@@ -45,6 +45,24 @@ public final class StatsService {
                 0, Math.max(0, old.elo() - 15)));
     }
 
+    public void recordDraw(UUID uuid) {
+        PlayerStats old = getCached(uuid);
+        set(uuid, new PlayerStats(old.wins(), old.losses(), old.kills(), old.deaths(), old.streak(), old.elo()));
+    }
+
+    public void recordMatch(UUID winner, UUID loser) {
+        if (winner == null) {
+            if (loser != null) recordDraw(loser);
+            return;
+        }
+        if (loser == null) {
+            recordWin(winner, false);
+            return;
+        }
+        recordWin(winner, true);
+        recordLoss(loser);
+    }
+
     private static String encode(PlayerStats s) {
         return s.wins() + "," + s.losses() + "," + s.kills() + "," + s.deaths() + "," + s.streak() + "," + s.elo();
     }
