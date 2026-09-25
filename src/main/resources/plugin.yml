@@ -1,0 +1,9 @@
+name: VoidFlame-Stats
+version: 1.0.0
+main: net.voidflame.stats.VoidFlameStatsPlugin
+description: Stats module for VoidFlame MC.
+author: VoidFlame
+website: https://github.com/alialghamdi6068/VoidFlame-Stats
+api-version: '26.2'
+load: POSTWORLD
+depend: [VoidFlame-Core]
