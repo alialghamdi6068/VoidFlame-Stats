@@ -1,12 +1,13 @@
 package net.voidflame.stats;
 
-import org.bukkit.plugin.ServicePriority;
-
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 public final class StatsService {
-    public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}\n    public record RankedPlayer(UUID uuid, String name, PlayerStats stats) {}
+    public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}
+    public record RankedPlayer(UUID uuid, String name, PlayerStats stats) {}
 
     private final VoidFlameStatsPlugin plugin;
     private final ConcurrentHashMap<UUID, PlayerStats> cache = new ConcurrentHashMap<>();
@@ -24,7 +25,13 @@ public final class StatsService {
             if (value == null || value.isBlank()) return;
             String[] p = value.split(",");
             if (p.length != 6) return;
-            try { cache.put(uuid, new PlayerStats(Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2]), Long.parseLong(p[3]), Long.parseLong(p[4]), Double.parseDouble(p[5]))); } catch (NumberFormatException ignored) {}
+            try {
+                cache.put(uuid, new PlayerStats(
+                        Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2]),
+                        Long.parseLong(p[3]), Long.parseLong(p[4]), Double.parseDouble(p[5])
+                ));
+            } catch (NumberFormatException ignored) {
+            }
         });
     }
 
@@ -35,19 +42,26 @@ public final class StatsService {
 
     public void recordWin(UUID uuid, boolean kill) {
         PlayerStats old = getCached(uuid);
-        set(uuid, new PlayerStats(old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
-                old.deaths(), old.streak() + 1, old.elo() + 15));
+        set(uuid, new PlayerStats(
+                old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
+                old.deaths(), old.streak() + 1, old.elo() + 15
+        ));
     }
 
     public void recordLoss(UUID uuid) {
         PlayerStats old = getCached(uuid);
-        set(uuid, new PlayerStats(old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
-                0, Math.max(0, old.elo() - 15)));
+        set(uuid, new PlayerStats(
+                old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
+                0, Math.max(0, old.elo() - 15)
+        ));
     }
 
     public void recordDraw(UUID uuid) {
         PlayerStats old = getCached(uuid);
-        set(uuid, new PlayerStats(old.wins(), old.losses(), old.kills(), old.deaths(), old.streak(), old.elo()));
+        set(uuid, new PlayerStats(
+                old.wins(), old.losses(), old.kills(), old.deaths(),
+                old.streak(), old.elo()
+        ));
     }
 
     public void recordMatch(UUID winner, UUID loser) {
@@ -63,7 +77,12 @@ public final class StatsService {
         recordLoss(loser);
     }
 
-    public java.util.concurrent.CompletableFuture<java.util.List<RankedPlayer>> top(int limit) {\n        return plugin.queryTop(Math.max(1, Math.min(50, limit)));\n    }\n\n    private static String encode(PlayerStats s) {
-        return s.wins() + "," + s.losses() + "," + s.kills() + "," + s.deaths() + "," + s.streak() + "," + s.elo();
+    public CompletableFuture<List<RankedPlayer>> top(int limit) {
+        return plugin.queryTop(Math.max(1, Math.min(50, limit)));
+    }
+
+    private static String encode(PlayerStats s) {
+        return s.wins() + "," + s.losses() + "," + s.kills() + "," +
+                s.deaths() + "," + s.streak() + "," + s.elo();
     }
 }
