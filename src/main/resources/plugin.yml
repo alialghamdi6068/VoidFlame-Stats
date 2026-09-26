@@ -12,3 +12,15 @@ commands:
   stats:
     description: View your VoidFlame practice statistics.
     usage: /stats
+    permission: voidflame.stats
+
+permissions:
+  voidflame.stats:
+    description: View practice statistics.
+    default: true
+  voidflame.leaderboard:
+    description: View practice leaderboards.
+    default: true
+  voidflame.elo.modify:
+    description: Modify player ELO.
+    default: op
