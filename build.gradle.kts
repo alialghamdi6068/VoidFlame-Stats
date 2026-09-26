@@ -23,3 +23,5 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.jar { archiveBaseName.set(project.name) }
 tasks.shadowJar { archiveBaseName.set(project.name); archiveClassifier.set("") }
 tasks.build { dependsOn(tasks.shadowJar) }
+
+// CI refresh after Core database fix.
