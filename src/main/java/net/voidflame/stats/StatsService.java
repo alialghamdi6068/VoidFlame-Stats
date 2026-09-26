@@ -45,32 +45,36 @@ public final class StatsService implements MatchResultService {
     }
 
     public void recordWin(UUID uuid, boolean kill) {
-        synchronized (playerLocks.computeIfAbsent(uuid, ignored -> new Object())) {
+        Object lock = playerLocks.computeIfAbsent(uuid, ignored -> new Object());
+        synchronized (lock) {
             PlayerStats old = getCached(uuid);
-        set(uuid, new PlayerStats(
-                old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
-                old.deaths(), old.streak() + 1, old.elo() + plugin.getConfig().getDouble("match-results.win-elo-change", 15.0)
-        ));
+            set(uuid, new PlayerStats(
+                    old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
+                    old.deaths(), old.streak() + 1,
+                    old.elo() + plugin.getConfig().getDouble("match-results.win-elo-change", 15.0)
+            ));
         }
     }
 
     public void recordLoss(UUID uuid) {
-        synchronized (playerLocks.computeIfAbsent(uuid, ignored -> new Object())) {
+        Object lock = playerLocks.computeIfAbsent(uuid, ignored -> new Object());
+        synchronized (lock) {
             PlayerStats old = getCached(uuid);
-        set(uuid, new PlayerStats(
-                old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
-                0, Math.max(0, old.elo() - plugin.getConfig().getDouble("match-results.loss-elo-change", 15.0))
-        ));
+            set(uuid, new PlayerStats(
+                    old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
+                    0, Math.max(0, old.elo() - plugin.getConfig().getDouble("match-results.loss-elo-change", 15.0))
+            ));
         }
     }
 
     public void recordDraw(UUID uuid) {
-        synchronized (playerLocks.computeIfAbsent(uuid, ignored -> new Object())) {
+        Object lock = playerLocks.computeIfAbsent(uuid, ignored -> new Object());
+        synchronized (lock) {
             PlayerStats old = getCached(uuid);
-        set(uuid, new PlayerStats(
-                old.wins(), old.losses(), old.kills(), old.deaths(),
-                old.streak(), old.elo()
-        ));
+            set(uuid, new PlayerStats(
+                    old.wins(), old.losses(), old.kills(), old.deaths(),
+                    old.streak(), old.elo()
+            ));
         }
     }
 
