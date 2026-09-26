@@ -6,7 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class StatsService {
-    public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}
+    public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}\n    public record RankedPlayer(UUID uuid, String name, PlayerStats stats) {}
 
     private final VoidFlameStatsPlugin plugin;
     private final ConcurrentHashMap<UUID, PlayerStats> cache = new ConcurrentHashMap<>();
@@ -63,7 +63,7 @@ public final class StatsService {
         recordLoss(loser);
     }
 
-    private static String encode(PlayerStats s) {
+    public java.util.concurrent.CompletableFuture<java.util.List<RankedPlayer>> top(int limit) {\n        return plugin.queryTop(Math.max(1, Math.min(50, limit)));\n    }\n\n    private static String encode(PlayerStats s) {
         return s.wins() + "," + s.losses() + "," + s.kills() + "," + s.deaths() + "," + s.streak() + "," + s.elo();
     }
 }
