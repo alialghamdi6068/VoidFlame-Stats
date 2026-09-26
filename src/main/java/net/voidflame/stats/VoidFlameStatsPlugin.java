@@ -11,6 +11,8 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.List;
+import java.util.UUID;
 
 public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     private StorageService storage;
@@ -27,6 +29,24 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     }
 
     public CompletableFuture<Void> put(String key,String value){return storage.put("stats",key,value);}
+
+    public CompletableFuture<List<StatsService.RankedPlayer>> queryTop(int limit) {
+        return storage.query("SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE 'player:%' ORDER BY updated_at DESC LIMIT ?", "stats", limit * 3)
+            .thenApply(rows -> rows.stream().map(row -> {
+                String key=String.valueOf(row.get("data_key"));
+                String raw=String.valueOf(row.get("data_value"));
+                try {
+                    UUID id=UUID.fromString(key.substring("player:".length()));
+                    String[] p=raw.split(",");
+                    if(p.length!=6) return null;
+                    StatsService.PlayerStats s=new StatsService.PlayerStats(Long.parseLong(p[0]),Long.parseLong(p[1]),Long.parseLong(p[2]),Long.parseLong(p[3]),Long.parseLong(p[4]),Double.parseDouble(p[5]));
+                    Player online=getServer().getPlayer(id);
+                    return new StatsService.RankedPlayer(id,online==null?id.toString():online.getName(),s);
+                } catch(Exception ignored){return null;}
+            }).filter(java.util.Objects::nonNull).sorted(java.util.Comparator.comparingDouble((StatsService.RankedPlayer p)->p.stats().elo()).reversed()).limit(limit).toList());
+    }
+
+
     public CompletableFuture<String> get(String key){return storage.get("stats",key);}
 
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
