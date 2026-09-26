@@ -32,7 +32,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     public CompletableFuture<Void> put(String key,String value){return storage.put("stats",key,value);}
 
     public CompletableFuture<List<StatsService.RankedPlayer>> queryTop(int limit) {
-        return storage.query("SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE 'player:%' ORDER BY updated_at DESC LIMIT ?", "stats", limit * 3)
+        return storage.query("SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE 'player:%' ORDER BY data_key ASC", "stats", 100000)
             .thenApply(rows -> rows.stream().map(row -> {
                 String key=String.valueOf(row.get("data_key"));
                 String raw=String.valueOf(row.get("data_value"));
