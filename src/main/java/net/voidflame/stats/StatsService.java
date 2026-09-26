@@ -4,6 +4,7 @@ import net.voidflame.core.api.MatchResultService;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 import java.util.List;
 
 public final class StatsService implements MatchResultService {
@@ -12,13 +13,14 @@ public final class StatsService implements MatchResultService {
 
     private final VoidFlameStatsPlugin plugin;
     private final ConcurrentHashMap<UUID, PlayerStats> cache = new ConcurrentHashMap<>();
+    private final Set<UUID> processedMatches = ConcurrentHashMap.newKeySet();
 
     public StatsService(VoidFlameStatsPlugin plugin) {
         this.plugin = plugin;
     }
 
     public PlayerStats getCached(UUID uuid) {
-        return cache.getOrDefault(uuid, new PlayerStats(0, 0, 0, 0, 0, 1000));
+        return cache.getOrDefault(uuid, new PlayerStats(0, 0, 0, 0, 0, plugin.getConfig().getDouble("match-results.initial-elo", 1000.0)));
     }
 
     public void load(UUID uuid) {
@@ -45,7 +47,7 @@ public final class StatsService implements MatchResultService {
         PlayerStats old = getCached(uuid);
         set(uuid, new PlayerStats(
                 old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
-                old.deaths(), old.streak() + 1, old.elo() + 15
+                old.deaths(), old.streak() + 1, old.elo() + plugin.getConfig().getDouble("match-results.win-elo-change", 15.0)
         ));
     }
 
@@ -53,7 +55,7 @@ public final class StatsService implements MatchResultService {
         PlayerStats old = getCached(uuid);
         set(uuid, new PlayerStats(
                 old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
-                0, Math.max(0, old.elo() - 15)
+                0, Math.max(0, old.elo() - plugin.getConfig().getDouble("match-results.loss-elo-change", 15.0))
         ));
     }
 
@@ -67,6 +69,7 @@ public final class StatsService implements MatchResultService {
 
     @Override
     public void record(MatchResultService.MatchResult result) {
+        if (plugin.getConfig().getBoolean("match-results.duplicate-protection", true) && !processedMatches.add(result.matchId())) return;
         recordMatch(result.winner(), result.loser());
         String timestamp = Long.toString(System.currentTimeMillis());
         String winner = result.winner() == null ? "" : result.winner().toString();
