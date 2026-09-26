@@ -14,6 +14,7 @@ public final class StatsService implements MatchResultService {
     private final VoidFlameStatsPlugin plugin;
     private final ConcurrentHashMap<UUID, PlayerStats> cache = new ConcurrentHashMap<>();
     private final Set<UUID> processedMatches = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<UUID, Object> playerLocks = new ConcurrentHashMap<>();
 
     public StatsService(VoidFlameStatsPlugin plugin) {
         this.plugin = plugin;
@@ -44,27 +45,33 @@ public final class StatsService implements MatchResultService {
     }
 
     public void recordWin(UUID uuid, boolean kill) {
-        PlayerStats old = getCached(uuid);
+        synchronized (playerLocks.computeIfAbsent(uuid, ignored -> new Object())) {
+            PlayerStats old = getCached(uuid);
         set(uuid, new PlayerStats(
                 old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
                 old.deaths(), old.streak() + 1, old.elo() + plugin.getConfig().getDouble("match-results.win-elo-change", 15.0)
         ));
+        }
     }
 
     public void recordLoss(UUID uuid) {
-        PlayerStats old = getCached(uuid);
+        synchronized (playerLocks.computeIfAbsent(uuid, ignored -> new Object())) {
+            PlayerStats old = getCached(uuid);
         set(uuid, new PlayerStats(
                 old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
                 0, Math.max(0, old.elo() - plugin.getConfig().getDouble("match-results.loss-elo-change", 15.0))
         ));
+        }
     }
 
     public void recordDraw(UUID uuid) {
-        PlayerStats old = getCached(uuid);
+        synchronized (playerLocks.computeIfAbsent(uuid, ignored -> new Object())) {
+            PlayerStats old = getCached(uuid);
         set(uuid, new PlayerStats(
                 old.wins(), old.losses(), old.kills(), old.deaths(),
                 old.streak(), old.elo()
         ));
+        }
     }
 
     @Override
