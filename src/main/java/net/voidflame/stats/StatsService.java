@@ -72,15 +72,15 @@ public final class StatsService implements MatchResultService {
         String winner = result.winner() == null ? "" : result.winner().toString();
         String loser = result.loser() == null ? "" : result.loser().toString();
         String base = timestamp + ":" + result.matchId();
-        if (result.playerA() != null) plugin.put("history:" + result.playerA(), base,
+        if (result.playerA() != null) plugin.put("history:" + result.playerA() + ":" + base,
                 encodeHistory(result, result.playerA(), winner, loser));
-        if (result.playerB() != null) plugin.put("history:" + result.playerB(), base,
+        if (result.playerB() != null) plugin.put("history:" + result.playerB() + ":" + base,
                 encodeHistory(result, result.playerB(), winner, loser));
         if (result.kit() != null) {
-            if (result.winner() != null) plugin.put("kit:" + result.winner() + ":" + result.kit(),
-                    "wins", Long.toString(getCached(result.winner()).wins()));
-            if (result.loser() != null) plugin.put("kit:" + result.loser() + ":" + result.kit(),
-                    "losses", Long.toString(getCached(result.loser()).losses()));
+            if (result.winner() != null) plugin.put("kit:" + result.winner() + ":" + result.kit() + ":wins",
+                    Long.toString(getCached(result.winner()).wins()));
+            if (result.loser() != null) plugin.put("kit:" + result.loser() + ":" + result.kit() + ":losses",
+                    Long.toString(getCached(result.loser()).losses()));
         }
     }
 
