@@ -1,11 +1,12 @@
 package net.voidflame.stats;
 
+import net.voidflame.core.api.MatchResultService;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 
-public final class StatsService {
+public final class StatsService implements MatchResultService {
     public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}
     public record RankedPlayer(UUID uuid, String name, PlayerStats stats) {}
 
@@ -62,6 +63,35 @@ public final class StatsService {
                 old.wins(), old.losses(), old.kills(), old.deaths(),
                 old.streak(), old.elo()
         ));
+    }
+
+    @Override
+    public void record(MatchResultService.MatchResult result) {
+        recordMatch(result.winner(), result.loser());
+        String timestamp = Long.toString(System.currentTimeMillis());
+        String winner = result.winner() == null ? "" : result.winner().toString();
+        String loser = result.loser() == null ? "" : result.loser().toString();
+        String base = timestamp + ":" + result.matchId();
+        if (result.playerA() != null) plugin.put("history:" + result.playerA(), base,
+                encodeHistory(result, result.playerA(), winner, loser));
+        if (result.playerB() != null) plugin.put("history:" + result.playerB(), base,
+                encodeHistory(result, result.playerB(), winner, loser));
+        if (result.kit() != null) {
+            if (result.winner() != null) plugin.put("kit:" + result.winner() + ":" + result.kit(),
+                    "wins", Long.toString(getCached(result.winner()).wins()));
+            if (result.loser() != null) plugin.put("kit:" + result.loser() + ":" + result.kit(),
+                    "losses", Long.toString(getCached(result.loser()).losses()));
+        }
+    }
+
+    private String encodeHistory(MatchResultService.MatchResult result, UUID player, String winner, String loser) {
+        String outcome = player.equals(result.winner()) ? "WIN" : player.equals(result.loser()) ? "LOSS" : "DRAW";
+        return outcome + "|" + result.kit() + "|" + result.mode() + "|" + result.arena() + "|" + result.durationMs();
+    }
+
+    public double winLossRatio(UUID uuid) {
+        PlayerStats s = getCached(uuid);
+        return s.losses() == 0 ? s.wins() : (double) s.wins() / s.losses();
     }
 
     public void recordMatch(UUID winner, UUID loser) {
