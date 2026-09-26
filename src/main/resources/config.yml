@@ -2,3 +2,4 @@
 settings:
   enabled: true
   module: stats
+match-results:  duplicate-protection: true  history-enabled: true  kit-stats-enabled: true  initial-elo: 1000.0  win-elo-change: 15.0  loss-elo-change: 15.0  draw-elo-change: 0.0  win-kill-counts-as-kill: trueleaderboard:  default-limit: 10  max-limit: 50messages:  prefix: "§bVoidFlame §8» "
