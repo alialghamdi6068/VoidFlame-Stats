@@ -24,6 +24,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         if(registration==null || (storage=registration.getProvider())==null){getLogger().severe("VoidFlame-Core storage service is unavailable.");getServer().getPluginManager().disablePlugin(this);return;}
         stats=new StatsService(this);
         getServer().getServicesManager().register(StatsService.class,stats,this,ServicePriority.Normal);
+        getServer().getServicesManager().register(net.voidflame.core.api.MatchResultService.class, stats, this, ServicePriority.Normal);
         getServer().getPluginManager().registerEvents(this,this);
         getLogger().info("VoidFlame-Stats enabled with persistent W/L/K/D/streak/ELO storage.");
     }
@@ -69,5 +70,6 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
 
     @EventHandler public void onJoin(PlayerJoinEvent event){stats.load(event.getPlayer().getUniqueId());}
     public StatsService stats(){return stats;}
-    @Override public void onDisable(){getServer().getServicesManager().unregister(StatsService.class,this);}
+    @Override public void onDisable(){getServer().getServicesManager().unregister(StatsService.class,this);
+    getServer().getServicesManager().unregister(net.voidflame.core.api.MatchResultService.class,this);}
 }
