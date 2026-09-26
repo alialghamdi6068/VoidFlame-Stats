@@ -76,7 +76,23 @@ public final class StatsService implements MatchResultService {
 
     @Override
     public void record(MatchResultService.MatchResult result) {
-        if (plugin.getConfig().getBoolean("match-results.duplicate-protection", true) && !processedMatches.add(result.matchId())) return;
+        if (result.matchId() == null) return;
+        if (plugin.getConfig().getBoolean("match-results.duplicate-protection", true)) {
+            if (!processedMatches.add(result.matchId())) return;
+            plugin.get("processed:" + result.matchId()).thenAccept(marker -> {
+                if (marker != null) {
+                    processedMatches.remove(result.matchId());
+                    return;
+                }
+                plugin.put("processed:" + result.matchId(), Long.toString(System.currentTimeMillis()));
+                recordMatchAndHistory(result);
+            });
+            return;
+        }
+        recordMatchAndHistory(result);
+    }
+
+    private void recordMatchAndHistory(MatchResultService.MatchResult result) {
         recordMatch(result.winner(), result.loser());
         String timestamp = Long.toString(System.currentTimeMillis());
         String winner = result.winner() == null ? "" : result.winner().toString();
