@@ -1,13 +1,14 @@
 package net.voidflame.stats;
 
 import net.voidflame.core.api.MatchResultService;
+import net.voidflame.core.api.PartyMatchResultService;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.List;
 
-public final class StatsService implements MatchResultService {
+public final class StatsService implements MatchResultService, PartyMatchResultService {
     public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}
     public record RankedPlayer(UUID uuid, String name, PlayerStats stats) {}
 
@@ -76,6 +77,29 @@ public final class StatsService implements MatchResultService {
                     old.streak(), old.elo()
             ));
         }
+    }
+
+    @Override
+    public void record(PartyMatchResultService.PartyMatchResult result) {
+        if (result.matchId() == null || result.players().isEmpty()) return;
+        if (plugin.getConfig().getBoolean("match-results.duplicate-protection", true)
+                && !processedMatches.add(result.matchId())) return;
+
+        Set<UUID> winners = Set.copyOf(result.winners());
+        for (UUID player : result.players()) {
+            if (player == null) continue;
+            if (winners.contains(player)) {
+                recordWin(player, plugin.getConfig().getBoolean("match-results.party-winner-counts-as-kill", false));
+            } else {
+                recordLoss(player);
+            }
+            if (plugin.getConfig().getBoolean("match-results.history-enabled", true)) {
+                plugin.put("history:" + player + ":" + System.currentTimeMillis() + ":" + result.matchId(),
+                        (winners.contains(player) ? "WIN" : "LOSS") + "|" + result.kit() + "|" + result.mode()
+                                + "|" + result.arena() + "|" + result.durationMs());
+            }
+        }
+        plugin.put("processed:" + result.matchId(), Long.toString(System.currentTimeMillis()));
     }
 
     @Override
