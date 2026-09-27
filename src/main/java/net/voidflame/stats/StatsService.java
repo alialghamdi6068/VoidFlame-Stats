@@ -17,6 +17,7 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
     private final ConcurrentHashMap<UUID, PlayerStats> cache = new ConcurrentHashMap<>();
     private final Set<UUID> processedMatches = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, Object> playerLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, long[]> kitStatsCache = new ConcurrentHashMap<>();
 
     public StatsService(VoidFlameStatsPlugin plugin) {
         this.plugin = plugin;
@@ -27,6 +28,23 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
     }
 
     public void load(UUID uuid) {
+        for (String kit : List.of("sword","axe","uhc","mace","smp","spear_mace","crystal","netherite_pot")) {
+            String key = "kitstats:" + uuid + ":" + kit;
+            plugin.get(key).thenAccept(raw -> {
+                long wins = 0, losses = 0;
+                if (raw != null) {
+                    String[] parts = raw.split(",", -1);
+                    try {
+                        if (parts.length == 2) {
+                            wins = Math.max(0, Long.parseLong(parts[0]));
+                            losses = Math.max(0, Long.parseLong(parts[1]));
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
+                kitStatsCache.put(key, new long[]{wins, losses});
+            });
+        }
+
         plugin.get("player:" + uuid).thenAccept(value -> {
             if (value == null || value.isBlank()) return;
             String[] p = value.split(",");
@@ -179,22 +197,9 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
     private void recordKitResult(UUID player, String kit, boolean win) {
         if (player == null || kit == null) return;
         String key = "kitstats:" + player + ":" + kit.toLowerCase(Locale.ROOT);
-        String current = cacheKitValue(key);
-        String[] parts = current.split(",", -1);
-        long wins = 0, losses = 0;
-        try {
-            if (parts.length == 2) {
-                wins = Long.parseLong(parts[0]);
-                losses = Long.parseLong(parts[1]);
-            }
-        } catch (NumberFormatException ignored) {}
-        if (win) wins++; else losses++;
-        plugin.put(key, wins + "," + losses);
-    }
-
-    private String cacheKitValue(String key) {
-        // Kit results are persisted as counters; reads are async through getKitStats.
-        return "0,0";
+        long[] counters = kitStatsCache.computeIfAbsent(key, ignored -> new long[]{0, 0});
+        if (win) counters[0]++; else counters[1]++;
+        plugin.put(key, counters[0] + "," + counters[1]);
     }
 
     public CompletableFuture<List<RankedPlayer>> top(int limit) {
