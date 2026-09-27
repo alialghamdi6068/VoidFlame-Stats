@@ -12,6 +12,7 @@ match-results:
   loss-elo-change: 15.0
   draw-elo-change: 0.0
   win-kill-counts-as-kill: true
+  party-winner-counts-as-kill: false
 
 leaderboard:
   default-limit: 10
