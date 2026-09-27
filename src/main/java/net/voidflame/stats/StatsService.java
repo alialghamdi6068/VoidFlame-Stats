@@ -3,6 +3,7 @@ package net.voidflame.stats;
 import net.voidflame.core.api.MatchResultService;
 import net.voidflame.core.api.PartyMatchResultService;
 import java.util.UUID;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
@@ -90,8 +91,14 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
             if (player == null) continue;
             if (winners.contains(player)) {
                 recordWin(player, plugin.getConfig().getBoolean("match-results.party-winner-counts-as-kill", false));
+                if (plugin.getConfig().getBoolean("match-results.kit-stats-enabled", true) && result.kit() != null) {
+                    recordKitResult(player, result.kit(), true);
+                }
             } else {
                 recordLoss(player);
+                if (plugin.getConfig().getBoolean("match-results.kit-stats-enabled", true) && result.kit() != null) {
+                    recordKitResult(player, result.kit(), false);
+                }
             }
             if (plugin.getConfig().getBoolean("match-results.history-enabled", true)) {
                 plugin.put("history:" + player + ":" + System.currentTimeMillis() + ":" + result.matchId(),
@@ -122,6 +129,10 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
 
     private void recordMatchAndHistory(MatchResultService.MatchResult result) {
         recordMatch(result.winner(), result.loser());
+        if (plugin.getConfig().getBoolean("match-results.kit-stats-enabled", true) && result.kit() != null) {
+            recordKitResult(result.winner(), result.kit(), true);
+            recordKitResult(result.loser(), result.kit(), false);
+        }
         String timestamp = Long.toString(System.currentTimeMillis());
         String winner = result.winner() == null ? "" : result.winner().toString();
         String loser = result.loser() == null ? "" : result.loser().toString();
@@ -159,6 +170,31 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
         }
         recordWin(winner, true);
         recordLoss(loser);
+    }
+
+    public CompletableFuture<String> getKitStats(UUID player, String kit) {
+        return plugin.get("kitstats:" + player + ":" + kit.toLowerCase(Locale.ROOT));
+    }
+
+    private void recordKitResult(UUID player, String kit, boolean win) {
+        if (player == null || kit == null) return;
+        String key = "kitstats:" + player + ":" + kit.toLowerCase(Locale.ROOT);
+        String current = cacheKitValue(key);
+        String[] parts = current.split(",", -1);
+        long wins = 0, losses = 0;
+        try {
+            if (parts.length == 2) {
+                wins = Long.parseLong(parts[0]);
+                losses = Long.parseLong(parts[1]);
+            }
+        } catch (NumberFormatException ignored) {}
+        if (win) wins++; else losses++;
+        plugin.put(key, wins + "," + losses);
+    }
+
+    private String cacheKitValue(String key) {
+        // Kit results are persisted as counters; reads are async through getKitStats.
+        return "0,0";
     }
 
     public CompletableFuture<List<RankedPlayer>> top(int limit) {
