@@ -101,9 +101,22 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
     @Override
     public void record(PartyMatchResultService.PartyMatchResult result) {
         if (result.matchId() == null || result.players().isEmpty()) return;
-        if (plugin.getConfig().getBoolean("match-results.duplicate-protection", true)
-                && !processedMatches.add(result.matchId())) return;
+        if (plugin.getConfig().getBoolean("match-results.duplicate-protection", true)) {
+            if (!processedMatches.add(result.matchId())) return;
+            plugin.get("processed:" + result.matchId()).thenAccept(marker -> {
+                if (marker != null) {
+                    processedMatches.remove(result.matchId());
+                    return;
+                }
+                plugin.put("processed:" + result.matchId(), Long.toString(System.currentTimeMillis()));
+                recordPartyResult(result);
+            });
+            return;
+        }
+        recordPartyResult(result);
+    }
 
+    private void recordPartyResult(PartyMatchResultService.PartyMatchResult result) {
         Set<UUID> winners = Set.copyOf(result.winners());
         for (UUID player : result.players()) {
             if (player == null) continue;
@@ -124,7 +137,6 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
                                 + "|" + result.arena() + "|" + result.durationMs());
             }
         }
-        plugin.put("processed:" + result.matchId(), Long.toString(System.currentTimeMillis()));
     }
 
     @Override
@@ -146,7 +158,12 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
     }
 
     private void recordMatchAndHistory(MatchResultService.MatchResult result) {
-        recordMatch(result.winner(), result.loser());
+        if (result.winner() == null) {
+            if (result.playerA() != null) recordDraw(result.playerA());
+            if (result.playerB() != null) recordDraw(result.playerB());
+        } else {
+            recordMatch(result.winner(), result.loser());
+        }
         if (plugin.getConfig().getBoolean("match-results.kit-stats-enabled", true) && result.kit() != null) {
             recordKitResult(result.winner(), result.kit(), true);
             recordKitResult(result.loser(), result.kit(), false);
