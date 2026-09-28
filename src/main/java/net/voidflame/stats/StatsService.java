@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.List;
 
 public final class StatsService implements MatchResultService, PartyMatchResultService {
-    public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, double elo) {}
+    public record PlayerStats(long wins, long losses, long kills, long deaths, long streak, long bestStreak, double elo) {}
     public record RankedPlayer(UUID uuid, String name, PlayerStats stats) {}
 
     private final VoidFlameStatsPlugin plugin;
@@ -24,7 +24,7 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
     }
 
     public PlayerStats getCached(UUID uuid) {
-        return cache.getOrDefault(uuid, new PlayerStats(0, 0, 0, 0, 0, plugin.getConfig().getDouble("match-results.initial-elo", 1000.0)));
+        return cache.getOrDefault(uuid, new PlayerStats(0, 0, 0, 0, 0, 0, plugin.getConfig().getDouble("match-results.initial-elo", 1000.0)));
     }
 
     public void load(UUID uuid) {
@@ -48,11 +48,11 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
         plugin.get("player:" + uuid).thenAccept(value -> {
             if (value == null || value.isBlank()) return;
             String[] p = value.split(",");
-            if (p.length != 6) return;
+            if (p.length != 6 && p.length != 7) return;
             try {
                 cache.put(uuid, new PlayerStats(
                         Long.parseLong(p[0]), Long.parseLong(p[1]), Long.parseLong(p[2]),
-                        Long.parseLong(p[3]), Long.parseLong(p[4]), Double.parseDouble(p[5])
+                        Long.parseLong(p[3]), Long.parseLong(p[4]), p.length == 7 ? Long.parseLong(p[5]) : Long.parseLong(p[4]), Double.parseDouble(p[p.length == 7 ? 6 : 5])
                 ));
             } catch (NumberFormatException ignored) {
             }
@@ -70,7 +70,7 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
             PlayerStats old = getCached(uuid);
             set(uuid, new PlayerStats(
                     old.wins() + 1, old.losses(), old.kills() + (kill ? 1 : 0),
-                    old.deaths(), old.streak() + 1,
+                    old.deaths(), old.streak() + 1, Math.max(old.bestStreak(), old.streak() + 1),
                     old.elo() + plugin.getConfig().getDouble("match-results.win-elo-change", 15.0)
             ));
         }
@@ -82,7 +82,7 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
             PlayerStats old = getCached(uuid);
             set(uuid, new PlayerStats(
                     old.wins(), old.losses() + 1, old.kills(), old.deaths() + 1,
-                    0, Math.max(0, old.elo() - plugin.getConfig().getDouble("match-results.loss-elo-change", 15.0))
+                    0, old.bestStreak(), Math.max(0, old.elo() - plugin.getConfig().getDouble("match-results.loss-elo-change", 15.0))
             ));
         }
     }
@@ -93,7 +93,7 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
             PlayerStats old = getCached(uuid);
             set(uuid, new PlayerStats(
                     old.wins(), old.losses(), old.kills(), old.deaths(),
-                    old.streak(), old.elo()
+                    old.streak(), old.bestStreak(), old.elo()
             ));
         }
     }
@@ -225,6 +225,6 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
 
     private static String encode(PlayerStats s) {
         return s.wins() + "," + s.losses() + "," + s.kills() + "," +
-                s.deaths() + "," + s.streak() + "," + s.elo();
+                s.deaths() + "," + s.streak() + "," + s.bestStreak() + "," + s.elo();
     }
 }
