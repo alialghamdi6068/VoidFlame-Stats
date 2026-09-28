@@ -41,8 +41,8 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
                 try {
                     UUID id=UUID.fromString(key.substring("player:".length()));
                     String[] p=raw.split(",");
-                    if(p.length!=6) return null;
-                    StatsService.PlayerStats s=new StatsService.PlayerStats(Long.parseLong(p[0]),Long.parseLong(p[1]),Long.parseLong(p[2]),Long.parseLong(p[3]),Long.parseLong(p[4]),Double.parseDouble(p[5]));
+                    if(p.length!=6 && p.length!=7) return null;
+                    StatsService.PlayerStats s=new StatsService.PlayerStats(Long.parseLong(p[0]),Long.parseLong(p[1]),Long.parseLong(p[2]),Long.parseLong(p[3]),Long.parseLong(p[4]),p.length==7?Long.parseLong(p[5]):Long.parseLong(p[4]),Double.parseDouble(p[p.length==7?6:5]));
                     Player online=getServer().getPlayer(id);
                     return new StatsService.RankedPlayer(id,online==null?id.toString():online.getName(),s);
                 } catch(Exception ignored){return null;}
@@ -66,7 +66,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         player.sendMessage("§8§m--------------------"); player.sendMessage("§bVoidFlame §fStats");
         player.sendMessage("§7Wins: §a"+value.wins()); player.sendMessage("§7Losses: §c"+value.losses());
         player.sendMessage("§7Kills: §a"+value.kills()); player.sendMessage("§7Deaths: §c"+value.deaths());
-        player.sendMessage("§7Streak: §e"+value.streak()); player.sendMessage("§7ELO: §b"+Math.round(value.elo()));
+        player.sendMessage("§7Streak: §e"+value.streak()); player.sendMessage("§7Best Streak: §6"+value.bestStreak()); player.sendMessage("§7ELO: §b"+Math.round(value.elo()));
         player.sendMessage("§8§m--------------------"); return true;
     }
 
