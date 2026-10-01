@@ -108,8 +108,19 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
                     processedMatches.remove(result.matchId());
                     return;
                 }
-                plugin.put("processed:" + result.matchId(), Long.toString(System.currentTimeMillis()));
-                recordPartyResult(result);
+                plugin.getStorage().database().update(
+                        "INSERT OR IGNORE INTO module_data(module, data_key, data_value, updated_at) VALUES ('stats', ?, ?, ?)",
+                        "processed:" + result.matchId(),
+                        Long.toString(System.currentTimeMillis()),
+                        java.time.Instant.now().toString()
+                ).thenAccept(inserted -> {
+                    if (inserted == 1) recordPartyResult(result);
+                    else processedMatches.remove(result.matchId());
+                }).exceptionally(error -> {
+                    processedMatches.remove(result.matchId());
+                    plugin.getLogger().warning("Could not atomically mark party match " + result.matchId() + ": " + error.getMessage());
+                    return null;
+                });
             });
             return;
         }
@@ -149,8 +160,19 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
                     processedMatches.remove(result.matchId());
                     return;
                 }
-                plugin.put("processed:" + result.matchId(), Long.toString(System.currentTimeMillis()));
-                recordMatchAndHistory(result);
+                plugin.getStorage().database().update(
+                        "INSERT OR IGNORE INTO module_data(module, data_key, data_value, updated_at) VALUES ('stats', ?, ?, ?)",
+                        "processed:" + result.matchId(),
+                        Long.toString(System.currentTimeMillis()),
+                        java.time.Instant.now().toString()
+                ).thenAccept(inserted -> {
+                    if (inserted == 1) recordMatchAndHistory(result);
+                    else processedMatches.remove(result.matchId());
+                }).exceptionally(error -> {
+                    processedMatches.remove(result.matchId());
+                    plugin.getLogger().warning("Could not atomically mark match " + result.matchId() + ": " + error.getMessage());
+                    return null;
+                });
             });
             return;
         }
