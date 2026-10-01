@@ -160,7 +160,7 @@ public final class StatsService implements MatchResultService, PartyMatchResultS
                     processedMatches.remove(result.matchId());
                     return;
                 }
-                plugin.getStorage().database().update(
+                plugin.storage().database().update(
                         "INSERT OR IGNORE INTO module_data(module, data_key, data_value, updated_at) VALUES ('stats', ?, ?, ?)",
                         "processed:" + result.matchId(),
                         Long.toString(System.currentTimeMillis()),
