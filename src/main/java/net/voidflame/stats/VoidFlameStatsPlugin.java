@@ -13,6 +13,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.concurrent.CompletableFuture;
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     private StorageService storage;
@@ -53,7 +55,10 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     public CompletableFuture<String> get(String key){return storage.get("stats",key);}
 
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
-        if(!(sender instanceof Player player)||!command.getName().equalsIgnoreCase("stats")) return true;
+        if(!(sender instanceof Player player)) return true;
+        if (command.getName().equalsIgnoreCase("history")) { showHistory(player); return true; }
+        if (command.getName().equalsIgnoreCase("leaderboard")) { showLeaderboard(player); return true; }
+        if(!command.getName().equalsIgnoreCase("stats")) return true;
         if(args.length>0 && args[0].equalsIgnoreCase("top")){
             if (!player.hasPermission("voidflame.leaderboard")) { player.sendMessage("§cNo permission."); return true; }
             stats.top(10).thenAccept(rows->getServer().getScheduler().runTask(this,()->{
@@ -69,6 +74,41 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         player.sendMessage("§7Kills: §a"+value.kills()); player.sendMessage("§7Deaths: §c"+value.deaths());
         player.sendMessage("§7Streak: §e"+value.streak()); player.sendMessage("§7Best Streak: §6"+value.bestStreak()); player.sendMessage("§7ELO: §b"+Math.round(value.elo()));
         player.sendMessage("§8§m--------------------"); return true;
+    }
+
+    private void showLeaderboard(Player player) {
+        if (!player.hasPermission("voidflame.leaderboard")) { player.sendMessage("§cNo permission."); return; }
+        stats.top(10).thenAccept(rows -> getServer().getScheduler().runTask(this, () -> {
+            player.sendMessage("§8§m--------------------");
+            player.sendMessage("§bVoidFlame §fELO Leaderboard");
+            int i = 1;
+            for (var row : rows) player.sendMessage("§7" + i++ + ". §f" + row.name() + " §b" + Math.round(row.stats().elo()));
+            player.sendMessage("§8§m--------------------");
+        }));
+    }
+
+    private void showHistory(Player player) {
+        getServer().getScheduler().runTaskAsynchronously(this, () -> storage.query(
+                "SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE ? ORDER BY data_key DESC",
+                "stats", "history:" + player.getUniqueId() + ":%"
+        ).thenAccept(rows -> getServer().getScheduler().runTask(this, () -> {
+            player.sendMessage("§8§m--------------------");
+            player.sendMessage("§bVoidFlame §fMatch History");
+            int shown = 0;
+            for (var row : rows) {
+                if (shown++ >= 10) break;
+                String value = String.valueOf(row.get("data_value"));
+                String[] parts = value.split("\\|", -1);
+                String outcome = parts.length > 0 ? parts[0] : "UNKNOWN";
+                String kit = parts.length > 1 ? parts[1] : "unknown";
+                String mode = parts.length > 2 ? parts[2] : "unknown";
+                String arena = parts.length > 3 ? parts[3] : "unknown";
+                String prefix = outcome.equalsIgnoreCase("WIN") ? "§a" : outcome.equalsIgnoreCase("LOSS") ? "§c" : "§e";
+                player.sendMessage(prefix + outcome + " §7• §f" + kit + " §8• §7" + mode + " §8• §7" + arena);
+            }
+            if (shown == 0) player.sendMessage("§7No completed matches yet.");
+            player.sendMessage("§8§m--------------------");
+        })));
     }
 
     @EventHandler public void onJoin(PlayerJoinEvent event){stats.load(event.getPlayer().getUniqueId());}
