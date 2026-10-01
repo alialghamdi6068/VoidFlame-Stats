@@ -25,7 +25,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         var registration=getServer().getServicesManager().getRegistration(StorageService.class);
         if(registration==null || (storage=registration.getProvider())==null){getLogger().severe("VoidFlame-Core storage service is unavailable.");getServer().getPluginManager().disablePlugin(this);return;}
         stats=new StatsService(this);
-        if (getCommand("stats") != null) getCommand("stats").setExecutor(this);
+        if (getCommand("stats") != null) getCommand("stats").setExecutor(this);\n        if (getCommand("history") != null) getCommand("history").setExecutor(this);\n        if (getCommand("leaderboard") != null) getCommand("leaderboard").setExecutor(this);
         getServer().getServicesManager().register(StatsService.class,stats,this,ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.MatchResultService.class, stats, this, ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.PartyMatchResultService.class, stats, this, ServicePriority.Normal);
