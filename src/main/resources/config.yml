@@ -1,3 +1,8 @@
+# ================================================================
+# VoidFlame Stats • Production Configuration
+# Paper 26.2 • Java 25
+# ================================================================
+# Match history, ELO, kit statistics and leaderboard limits.
 # VoidFlame compatibility: Paper 26.2 / Java 25
 settings:
   enabled: true
