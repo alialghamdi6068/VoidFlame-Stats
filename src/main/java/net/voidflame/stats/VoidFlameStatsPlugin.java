@@ -34,7 +34,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     public CompletableFuture<Void> put(String key,String value){return storage.put("stats",key,value);}
 
     public CompletableFuture<List<StatsService.RankedPlayer>> queryTop(int limit) {
-        return storage.query("SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE 'player:%' ORDER BY data_key ASC", "stats", 100000)
+        return storage.query("SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE 'player:%' ORDER BY data_key ASC", "stats")
             .thenApply(rows -> rows.stream().map(row -> {
                 String key=String.valueOf(row.get("data_key"));
                 String raw=String.valueOf(row.get("data_value"));
@@ -55,6 +55,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
         if(!(sender instanceof Player player)||!command.getName().equalsIgnoreCase("stats")) return true;
         if(args.length>0 && args[0].equalsIgnoreCase("top")){
+            if (!player.hasPermission("voidflame.leaderboard")) { player.sendMessage("§cNo permission."); return true; }
             stats.top(10).thenAccept(rows->getServer().getScheduler().runTask(this,()->{
                 player.sendMessage("§8§m--------------------"); player.sendMessage("§bVoidFlame §fELO Leaderboard");
                 int i=1; for(var row:rows) player.sendMessage("§7"+i+++". §f"+row.name()+" §b"+Math.round(row.stats().elo()));
