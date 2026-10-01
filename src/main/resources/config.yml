@@ -20,3 +20,4 @@ leaderboard:
 
 messages:
   prefix: "§bVoidFlame §8» "
+# maintenance: final integration build against latest VoidFlame-Core
