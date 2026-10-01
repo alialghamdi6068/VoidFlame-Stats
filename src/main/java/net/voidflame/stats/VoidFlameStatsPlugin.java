@@ -19,12 +19,14 @@ import java.util.Comparator;
 public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     private StorageService storage;
     private StatsService stats;
+    private StatsMenu menu;
 
     @Override public void onEnable() {
         saveDefaultConfig();
         var registration=getServer().getServicesManager().getRegistration(StorageService.class);
         if(registration==null || (storage=registration.getProvider())==null){getLogger().severe("VoidFlame-Core storage service is unavailable.");getServer().getPluginManager().disablePlugin(this);return;}
         stats=new StatsService(this);
+        menu=new StatsMenu(this);
         if (getCommand("stats") != null) getCommand("stats").setExecutor(this);
         if (getCommand("history") != null) getCommand("history").setExecutor(this);
         if (getCommand("leaderboard") != null) getCommand("leaderboard").setExecutor(this);
@@ -32,6 +34,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         getServer().getServicesManager().register(net.voidflame.core.api.MatchResultService.class, stats, this, ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.PartyMatchResultService.class, stats, this, ServicePriority.Normal);
         getServer().getPluginManager().registerEvents(this,this);
+        getServer().getPluginManager().registerEvents(menu,this);
         getLogger().info("VoidFlame-Stats enabled with persistent W/L/K/D/streak/ELO storage.");
     }
 
@@ -63,6 +66,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         if (command.getName().equalsIgnoreCase("history")) { showHistory(player); return true; }
         if (command.getName().equalsIgnoreCase("leaderboard")) { showLeaderboard(player); return true; }
         if(!command.getName().equalsIgnoreCase("stats")) return true;
+        if(args.length == 0) { menu.open(player); return true; }
         if(args.length>0 && args[0].equalsIgnoreCase("top")){
             if (!player.hasPermission("voidflame.leaderboard")) { player.sendMessage("§cNo permission."); return true; }
             stats.top(10).thenAccept(rows->getServer().getScheduler().runTask(this,()->{
@@ -117,6 +121,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
 
     @EventHandler public void onJoin(PlayerJoinEvent event){stats.load(event.getPlayer().getUniqueId());}
     public StatsService stats(){return stats;}
+    public StatsMenu menu(){return menu;}
     @Override public void onDisable(){getServer().getServicesManager().unregister(StatsService.class,this);
     getServer().getServicesManager().unregister(net.voidflame.core.api.MatchResultService.class,this);
     getServer().getServicesManager().unregister(net.voidflame.core.api.PartyMatchResultService.class,this);}
