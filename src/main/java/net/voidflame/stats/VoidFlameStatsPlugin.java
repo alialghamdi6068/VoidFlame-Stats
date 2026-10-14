@@ -29,7 +29,6 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         menu=new StatsMenu(this);
         if (getCommand("stats") != null) getCommand("stats").setExecutor(this);
         if (getCommand("history") != null) getCommand("history").setExecutor(this);
-        if (getCommand("leaderboard") != null) getCommand("leaderboard").setExecutor(this);
         getServer().getServicesManager().register(StatsService.class,stats,this,ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.MatchResultService.class, stats, this, ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.PartyMatchResultService.class, stats, this, ServicePriority.Normal);
@@ -64,7 +63,6 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
         if(!(sender instanceof Player player)) return true;
         if (command.getName().equalsIgnoreCase("history")) { showHistory(player); return true; }
-        if (command.getName().equalsIgnoreCase("leaderboard")) { showLeaderboard(player); return true; }
         if(!command.getName().equalsIgnoreCase("stats")) return true;
         if(args.length == 0) { menu.open(player); return true; }
         if(args.length>0 && args[0].equalsIgnoreCase("top")){
@@ -86,25 +84,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         player.sendMessage("§7Kills: §a"+value.kills()); player.sendMessage("§7Deaths: §c"+value.deaths());
         player.sendMessage("§7Streak: §e"+value.streak()); player.sendMessage("§7Best Streak: §6"+value.bestStreak()); player.sendMessage("§7ELO: §b"+Math.round(value.elo()));
         player.sendMessage("§8§m--------------------"); return true;
-    }
-
-    private void showLeaderboard(Player player) {
-        if (!player.hasPermission("voidflame.leaderboard")) {
-            player.sendMessage("§cNo permission.");
-            return;
-        }
-        stats.top(10).thenAccept(rows -> getServer().getScheduler().runTask(this, () -> {
-            if (player.isOnline()) menu.openLeaderboard(player, rows);
-        })).exceptionally(error -> {
-            getLogger().warning("Could not load ELO leaderboard: " + error.getMessage());
-            getServer().getScheduler().runTask(this, () -> {
-                if (player.isOnline()) player.sendMessage("§cCould not load the leaderboard right now.");
-            });
-            return null;
-        });
-    }
-
-    private void showHistory(Player player) {
+    }    private void showHistory(Player player) {
         storage.query(
                 "SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE ? ORDER BY data_key DESC",
                 "stats", "history:" + player.getUniqueId() + ":%"
