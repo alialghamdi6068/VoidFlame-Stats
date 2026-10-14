@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class StatsMenu {
+public final class StatsMenu implements org.bukkit.event.Listener {
     private final VoidFlameStatsPlugin plugin;
 
     public StatsMenu(VoidFlameStatsPlugin plugin) {
