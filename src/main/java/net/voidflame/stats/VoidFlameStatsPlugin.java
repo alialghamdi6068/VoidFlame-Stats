@@ -105,27 +105,31 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     }
 
     private void showHistory(Player player) {
-        getServer().getScheduler().runTaskAsynchronously(this, () -> storage.query(
+        storage.query(
                 "SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE ? ORDER BY data_key DESC",
                 "stats", "history:" + player.getUniqueId() + ":%"
-        ).thenAccept(rows -> getServer().getScheduler().runTask(this, () -> {
-            player.sendMessage("§8§m--------------------");
-            player.sendMessage("§bVoidFlame §fMatch History");
-            int shown = 0;
+        ).thenAccept(rows -> {
+            List<String> entries = new ArrayList<>();
             for (var row : rows) {
-                if (shown++ >= 10) break;
+                if (entries.size() >= 10) break;
                 String value = String.valueOf(row.get("data_value"));
                 String[] parts = value.split("\\|", -1);
                 String outcome = parts.length > 0 ? parts[0] : "UNKNOWN";
                 String kit = parts.length > 1 ? parts[1] : "unknown";
                 String mode = parts.length > 2 ? parts[2] : "unknown";
                 String arena = parts.length > 3 ? parts[3] : "unknown";
-                String prefix = outcome.equalsIgnoreCase("WIN") ? "§a" : outcome.equalsIgnoreCase("LOSS") ? "§c" : "§e";
-                player.sendMessage(prefix + outcome + " §7• §f" + kit + " §8• §7" + mode + " §8• §7" + arena);
+                entries.add(outcome + "   •   " + kit + "   •   " + mode + "   •   " + arena);
             }
-            if (shown == 0) player.sendMessage("§7No completed matches yet.");
-            player.sendMessage("§8§m--------------------");
-        })));
+            getServer().getScheduler().runTask(this, () -> {
+                if (player.isOnline()) menu.openHistory(player, entries);
+            });
+        }).exceptionally(error -> {
+            getLogger().warning("Could not load match history: " + error.getMessage());
+            getServer().getScheduler().runTask(this, () -> {
+                if (player.isOnline()) player.sendMessage("§cCould not load match history right now.");
+            });
+            return null;
+        });
     }
 
     @EventHandler public void onJoin(PlayerJoinEvent event){stats.load(event.getPlayer().getUniqueId());}
