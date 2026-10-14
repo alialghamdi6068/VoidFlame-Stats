@@ -89,14 +89,19 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
     }
 
     private void showLeaderboard(Player player) {
-        if (!player.hasPermission("voidflame.leaderboard")) { player.sendMessage("§cNo permission."); return; }
+        if (!player.hasPermission("voidflame.leaderboard")) {
+            player.sendMessage("§cNo permission.");
+            return;
+        }
         stats.top(10).thenAccept(rows -> getServer().getScheduler().runTask(this, () -> {
-            player.sendMessage("§8§m--------------------");
-            player.sendMessage("§bVoidFlame §fELO Leaderboard");
-            int i = 1;
-            for (var row : rows) player.sendMessage("§7" + i++ + ". §f" + row.name() + " §b" + Math.round(row.stats().elo()));
-            player.sendMessage("§8§m--------------------");
-        }));
+            if (player.isOnline()) menu.openLeaderboard(player, rows);
+        })).exceptionally(error -> {
+            getLogger().warning("Could not load ELO leaderboard: " + error.getMessage());
+            getServer().getScheduler().runTask(this, () -> {
+                if (player.isOnline()) player.sendMessage("§cCould not load the leaderboard right now.");
+            });
+            return null;
+        });
     }
 
     private void showHistory(Player player) {
