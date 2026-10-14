@@ -28,7 +28,6 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         stats=new StatsService(this);
         menu=new StatsMenu(this);
         if (getCommand("stats") != null) getCommand("stats").setExecutor(this);
-        if (getCommand("history") != null) getCommand("history").setExecutor(this);
         getServer().getServicesManager().register(StatsService.class,stats,this,ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.MatchResultService.class, stats, this, ServicePriority.Normal);
         getServer().getServicesManager().register(net.voidflame.core.api.PartyMatchResultService.class, stats, this, ServicePriority.Normal);
@@ -62,7 +61,6 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
 
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args){
         if(!(sender instanceof Player player)) return true;
-        if (command.getName().equalsIgnoreCase("history")) { showHistory(player); return true; }
         if(!command.getName().equalsIgnoreCase("stats")) return true;
         if(args.length == 0) { menu.open(player); return true; }
         if(args.length>0 && args[0].equalsIgnoreCase("top")){
@@ -84,35 +82,7 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         player.sendMessage("§7Kills: §a"+value.kills()); player.sendMessage("§7Deaths: §c"+value.deaths());
         player.sendMessage("§7Streak: §e"+value.streak()); player.sendMessage("§7Best Streak: §6"+value.bestStreak()); player.sendMessage("§7ELO: §b"+Math.round(value.elo()));
         player.sendMessage("§8§m--------------------"); return true;
-    }    private void showHistory(Player player) {
-        storage.query(
-                "SELECT data_key,data_value FROM module_data WHERE module=? AND data_key LIKE ? ORDER BY data_key DESC",
-                "stats", "history:" + player.getUniqueId() + ":%"
-        ).thenAccept(rows -> {
-            List<String> entries = new ArrayList<>();
-            for (var row : rows) {
-                if (entries.size() >= 10) break;
-                String value = String.valueOf(row.get("data_value"));
-                String[] parts = value.split("\\|", -1);
-                String outcome = parts.length > 0 ? parts[0] : "UNKNOWN";
-                String kit = parts.length > 1 ? parts[1] : "unknown";
-                String mode = parts.length > 2 ? parts[2] : "unknown";
-                String arena = parts.length > 3 ? parts[3] : "unknown";
-                entries.add(outcome + "   •   " + kit + "   •   " + mode + "   •   " + arena);
-            }
-            getServer().getScheduler().runTask(this, () -> {
-                if (player.isOnline()) menu.openHistory(player, entries);
-            });
-        }).exceptionally(error -> {
-            getLogger().warning("Could not load match history: " + error.getMessage());
-            getServer().getScheduler().runTask(this, () -> {
-                if (player.isOnline()) player.sendMessage("§cCould not load match history right now.");
-            });
-            return null;
-        });
-    }
-
-    @EventHandler public void onJoin(PlayerJoinEvent event){stats.load(event.getPlayer().getUniqueId());}
+    }    @EventHandler public void onJoin(PlayerJoinEvent event){stats.load(event.getPlayer().getUniqueId());}
     public StatsService stats(){return stats;}
     public StatsMenu menu(){return menu;}
     @Override public void onDisable(){getServer().getServicesManager().unregister(StatsService.class,this);
