@@ -69,11 +69,15 @@ public final class VoidFlameStatsPlugin extends JavaPlugin implements Listener {
         if(args.length == 0) { menu.open(player); return true; }
         if(args.length>0 && args[0].equalsIgnoreCase("top")){
             if (!player.hasPermission("voidflame.leaderboard")) { player.sendMessage("§cNo permission."); return true; }
-            stats.top(10).thenAccept(rows->getServer().getScheduler().runTask(this,()->{
-                player.sendMessage("§8§m--------------------"); player.sendMessage("§bVoidFlame §fELO Leaderboard");
-                int i=1; for(var row:rows) player.sendMessage("§7"+i+++". §f"+row.name()+" §b"+Math.round(row.stats().elo()));
-                player.sendMessage("§8§m--------------------");
-            }));
+            stats.top(10).thenAccept(rows -> getServer().getScheduler().runTask(this, () -> {
+                if (player.isOnline()) menu.openLeaderboard(player, rows);
+            })).exceptionally(error -> {
+                getLogger().warning("Could not load ELO leaderboard: " + error.getMessage());
+                getServer().getScheduler().runTask(this, () -> {
+                    if (player.isOnline()) player.sendMessage("§cCould not load the leaderboard right now.");
+                });
+                return null;
+            });
             return true;
         }
         StatsService.PlayerStats value=stats.getCached(player.getUniqueId());
