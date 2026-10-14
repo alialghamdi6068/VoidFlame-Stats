@@ -17,10 +17,6 @@ commands:
     description: View your recent duel match history.
     usage: /history
     permission: voidflame.stats
-  leaderboard:
-    description: View the top VoidFlame practice players.
-    usage: /leaderboard
-    permission: voidflame.leaderboard
 
 permissions:
   voidflame.stats:
